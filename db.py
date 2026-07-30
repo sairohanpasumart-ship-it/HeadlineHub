@@ -9,7 +9,8 @@ cursor.execute("""
         link TEXT UNIQUE NOT NULL,
         source TEXT NOT NULL,
         published TEXT,
-        summary TEXT
+        summary TEXT,
+        date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 """)
 
