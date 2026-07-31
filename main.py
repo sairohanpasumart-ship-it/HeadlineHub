@@ -1,9 +1,17 @@
 import feedparser
-import sqlite3
+import os
+from dotenv import load_dotenv
+from supabase import create_client
+
+load_dotenv()
+
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_KEY")
+
+
+supabase = create_client(url, key)
 
 def main():
-    connection = sqlite3.connect("headlinelab.db")
-    cursor = connection.cursor()
     added = 0
     feeds = [
          (
@@ -25,26 +33,43 @@ def main():
     ]
     for source, feed_url in feeds:
         news_feed = feedparser.parse(feed_url)
-    
-    
-        for article in news_feed.entries:
-            cursor.execute("""
-                INSERT OR IGNORE INTO articles
-                (title, link, source, published, summary)
-                VALUES (?, ?, ?, ?, ?)
-            """, (
-                article.title,
-                article.link,
-                source,
-                article.get("published", ""),
-                article.get("summary", "")
-            ))
-            if cursor.rowcount == 1:
-                added += 1
 
-        connection.commit()
-       
-    connection.close()
+        for article in news_feed.entries:
+            link = article.get("link", "").lower()
+            title = article.get("title", "").lower()
+            summary = article.get("summary", "").lower()
+
+            if (
+                "/videos/" in link
+                or "/sounds/" in link
+                or "/programmes/" in link
+                or "/iplayer/" in link
+                or "podcast" in title
+                or "podcast" in summary
+                or "bbc sounds" in summary
+            ):
+                continue
+            article_data = {
+                "title": article.title,
+                "link": article.link,
+                "source": source,
+                "published": article.get("published", ""),
+                "summary": article.get("summary", "")
+            }
+
+            response = (
+                supabase.table("articles")
+                .upsert(
+                    article_data,
+                    on_conflict="link",
+                    ignore_duplicates=True
+                )
+                .execute()
+            )
+
+            if response.data:
+                added += 1
+        
     print(f"Added {added} new articles")
 
 
