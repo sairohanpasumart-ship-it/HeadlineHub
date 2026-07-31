@@ -2,33 +2,23 @@ name: update news
 
 on:
   workflow_dispatch:
-
   schedule:
-    - cron: "17,47 * * * *"
-
-permissions:
-  contents: read
+    - cron: "17 * * * *"
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
 
     steps:
-      - name: get code
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-      - name: set up python
-        uses: actions/setup-python@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-          cache: pip
 
-      - name: install packages
-        run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt
 
-      - name: get new articles
-        run: python main.py
+      - run: python main.py
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
