@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "17 * * * *"
-
+    
 jobs:
-  update:
+  update_articles:
     runs-on: ubuntu-latest
 
     steps:
