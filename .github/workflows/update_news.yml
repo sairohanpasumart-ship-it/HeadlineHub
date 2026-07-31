@@ -3,7 +3,7 @@ name: update news
 on:
   workflow_dispatch:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "*/5 * * * *"
     
 jobs:
   update_articles:
