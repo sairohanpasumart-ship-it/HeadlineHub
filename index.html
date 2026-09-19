@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeadlineHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="images/HHFavicon.png">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav> 
+        <div class="navcontainer">
+            <div class="navlogo">
+                <a href="index.html">
+                <img src="images/HeadlineHub Logo.png" alt="HH Logo" class="logo-imagenavbar">
+                </a>
+                <h1 class = "logo">HeadlineHub</h1>
+            </div>
+            <div class="navlinks">    
+                <a href="index.html">Home</a>
+                <!-- <a href="#articles">Latest News</a> -->
+                <a href="#Howitworks">How It Works</a>
+                <a href="quiz.html">Quiz</a>
+                <a href="#about">About</a>
+                <a href="news.html">Latest News</a>
+            </div>  
+        </div>
+    </nav>
+    <!-- Hero -->
+    <section class="hero">
+    <div class="hero-content">
+        <div class="hero-text">
+            <h1>Prepare Smarter for UIL Current Events</h1>
+
+            <p>
+                Follow important headlines, practice with quizzes,
+                and strengthen your current-events knowledge.
+            </p>
+
+            <div class="hero-buttons">
+                <button class="firstbutton" onclick="window.location.href='quiz.html'">
+                    Take a Quiz
+                </button>
+                <button class="secondbutton" onclick="window.location.href='#Howitworks'">
+                    How It Works
+                </button>
+            </div>
+        </div>
+
+        <div class="hero-preview">
+            <img src="images/Heroimg.png" alt="Quiz Preview" class="hero-image">
+        </div>
+    </div>
+    </section>
+
+<section class="latest-news" id="articles">
+    <div class="section-heading">
+        <h2>Latest News</h2>
+        <p>Stay updated with the most recent headlines and news articles.</p>
+    </div>
+
+    <div class="card-grid" id="news-grid">
+        <p>Loading latest news...</p>
+    </div>
+</section>
+
+    
+    <!-- How It Works Section -->
+    <section id="Howitworks" class="how-it-works">
+        <div class="section-heading">
+            <h1>How It Works</h1>
+            <p>Learn how HeadlineHub helps you stay informed and prepared for UIL Current Events.</p>
+        </div>
+        <div class="how-grid">
+            <div class ="step1">
+                <h2>Step 1: News is collected throughout the day</h2>
+                <p>HeadlineHub gathers recent stories from selected news sources
+                    throughout the day.</p>
+            </div>
+            <div class ="step2">
+                <h2>Step 2: Quizzes are created</h2>
+                <p> Current stories are turned into UIL-style practice questions
+                    based on important people, places, and events.</p>
+            </div>
+            <div class ="step3">
+                <h2>Step 3: Practice and Review</h2>
+                <p>Take quizzes, review your answers, and return to the original
+                    news source when you need more context.</p>
+            </div>
+        </div>
+
+    </section>
+    <section id="about" class="about">
+    <h2>About HeadlineHub</h2>
+
+    <p>
+        HeadlineHub was created to make preparing for UIL Current Events easier.
+        It brings together recent news articles and turns important stories into
+        practice questions so students can study in one place.
+    </p>
+</section>
+<footer>
+    <div class="footer-content">
+
+        <div>
+            <h3>HeadlineHub</h3>
+            <p>
+                A current events study tool built to help students
+                prepare for UIL Current Events.
+            </p>
+        </div>
+
+        <div>
+            <h3>Quick Links</h3>
+            <a href="#home">Home</a>
+            <a href="#articles">Latest News</a>
+            <a href="#Howitworks">How It Works</a>
+            <a href="quiz.html">Quiz</a>
+            <a href="#about">About</a>
+        </div>
+
+        <div>
+            <h3>News Sources</h3>
+            <a href="https://www.bbc.com/news" target="_blank">BBC News</a>
+            <a href="https://www.texastribune.org/" target="_blank">Texas Tribune</a>
+            <p>Articles belong to their respective publishers.</p>
+        </div>
+
+    </div>
+
+    <div class="footer-bottom">
+        <p>Independent student project. Not affiliated with UIL.</p>
+    </div>
+</footer>
+    <script src="script.js"></script>
+</body>
+</html>

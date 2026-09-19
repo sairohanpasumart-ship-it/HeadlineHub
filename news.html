@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Latest News | HeadlineHub</title>
+    <div class="date-nav">
+    <button id="prev-day">← Previous Day</button>
+
+    <input type="date" id="news-date">
+
+    <button id="next-day">Next Day →</button>
+</div>
+
+<p id="date-label"></p>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="images/HHFavicon.png">
+</head>
+
+<body>
+
+    <nav>
+        <div class="navcontainer">
+
+            <div class="navlogo">
+                <a href="index.html">
+                    <img src="images/HeadlineHub Logo.png" alt="HeadlineHub Logo">
+                </a>
+
+                <h1 class="logo">HeadlineHub</h1>
+            </div>
+
+            <div class="navlinks">
+                <a href="index.html">Home</a>
+                <a href="news.html">Latest News</a>
+                <a href="index.html#Howitworks">How It Works</a>
+                <a href="quiz.html">Quiz</a>
+                <a href="index.html#about">About</a>
+            </div>
+
+        </div>
+    </nav>
+
+
+    <main class="news-page">
+
+        <div class="section-heading">
+            <h1>Latest News</h1>
+            <p>Recent stories collected for UIL Current Events practice.</p>
+        </div>
+
+        <div class="card-grid" id="news-grid">
+            <p>Loading news...</p>
+        </div>
+
+    </main>
+
+
+    <script src="news.js"></script>
+
+</body>
+</html>

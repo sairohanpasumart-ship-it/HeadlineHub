@@ -39,7 +39,7 @@ def main():
             title = article.get("title", "")
             summary = article.get("summary", "")
 
-            if ("/videos/" in link or "/sounds/" in link or "/programmes/" in link or "/iplayer/" in link or "podcast" in title or "podcast" in summary or "bbc sounds" in summary):
+            if skip_article(title, link, summary):
                 continue
             article_data = {
                 "title": article.title,
@@ -65,6 +65,40 @@ def main():
     print(f"Added {added} new articles")
 
 
+def skip_article(title, link, summary):
+    title_lower = title.lower()
+    link_lower = link.lower()
+    text = (title + " " + summary).lower()
+
+    bad_links = [
+        "/videos/",
+        "/sounds/",
+        "/programmes/",
+        "/iplayer/",
+        "/live/",
+        "/newsround/"
+    ]
+
+    bad_titles = [
+        "watch:",
+        "listen:",
+        "quiz:",
+        "in pictures:",
+        "what is ",
+        "who is ",
+        "how to "
+    ]
+
+    if any(word in link_lower for word in bad_links):
+        return True
+
+    if any(title_lower.startswith(word) for word in bad_titles):
+        return True
+
+    if "podcast" in text or "bbc sounds" in text:
+        return True
+
+    return False
 
 if __name__ == "__main__":
     main()

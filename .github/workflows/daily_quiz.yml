@@ -1,0 +1,26 @@
+name: daily quiz
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "0 12 * * *"
+
+jobs:
+  generate_quiz:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r req.txt
+
+      - run: python gq.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
