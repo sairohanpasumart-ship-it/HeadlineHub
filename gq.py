@@ -26,128 +26,184 @@ def clean_summary(summary):
     return re.sub("<[^>]+>", "", summary)
 
 
-def already_used(article_id):
-    response = (
-        supabase.table("quiz_questions")
-        .select("id")
-        .eq("article_id", article_id)
-        .limit(1)
-        .execute()
-    )
-
-    return len(response.data) > 0
-
-
-def make_question(article):
-    summary = clean_summary(article["summary"])
-
-    prompt = f"""
-You are creating a practice question for high school UIL Current Events.
-
-Decide if this article is useful enough for a current events quiz.
-
-Good articles involve important:
-- government or politics
-- international events
-- economics or business
-- science or technology
-- major Texas news
-- major national news
-
-Skip articles that are mostly entertainment, lifestyle, sports,
-random facts, advice, or do not contain enough information.
-
-Only use information supported by the title and summary below.
-
-Title: {article["title"]}
-Source: {article["source"]}
-Summary: {summary}
-
-If the article should be skipped, return:
-{{
-    "use": false
-}}
-
-If it is useful, return:
-{{
-    "use": true,
-    "question": "question here",
-    "choice_a": "answer",
-    "choice_b": "answer",
-    "choice_c": "answer",
-    "choice_d": "answer",
-    "correct_answer": "A"
-}}
-
-Make one clear factual multiple-choice question.
-Make the wrong answers believable.
-Do not ask which news source reported the story.
-Do not make a question if the title and summary do not clearly support the answer.
-"""
-
-    response = gemini.models.generate_content(
-        model="gemini-3.8-flash",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            temperature=0.2
-        )
-    )
-
-    return json.loads(response.text)
-
-
 def main():
+
+    # get newest articles
     response = (
         supabase.table("articles")
         .select("id,title,link,source,summary")
         .order("date_added", desc=True)
-        .limit(20)
+        .limit(30)
         .execute()
     )
 
     articles = response.data
 
-    added = 0
+
+    # get articles already used for questions
+    used_response = (
+        supabase.table("quiz_questions")
+        .select("article_id")
+        .execute()
+    )
+
+    used_ids = {
+        item["article_id"]
+        for item in used_response.data
+        if item["article_id"] is not None
+    }
+
+
+    # only keep unused articles
+    unused_articles = []
 
     for article in articles:
+
+        if article["id"] in used_ids:
+            continue
+
+        unused_articles.append({
+            "id": article["id"],
+            "title": article["title"],
+            "source": article["source"],
+            "summary": clean_summary(article["summary"])
+        })
+
+        if len(unused_articles) >= 20:
+            break
+
+
+    if len(unused_articles) == 0:
+        print("No new articles available")
+        return
+
+
+    prompt = f"""
+You are creating a daily quiz for high school UIL Current Events students.
+
+Below are recent news articles.
+
+Choose the 5 most important and useful articles for a current events quiz.
+
+Good topics include:
+- major government or political events
+- international affairs
+- economics and business
+- major science or technology developments
+- important Texas news
+- major national news
+
+Avoid:
+- entertainment
+- celebrity news
+- sports
+- lifestyle stories
+- random facts
+- opinion pieces
+- weak or trivial stories
+
+Only use facts clearly supported by the title and summary.
+
+For each selected article, make ONE multiple-choice question.
+
+Requirements:
+- exactly four choices
+- only one correct answer
+- believable wrong answers
+- question should test an important fact from the story
+- do not ask which news source reported it
+- do not invent information
+- return the article id exactly as provided
+
+Return JSON like this:
+
+[
+    {{
+        "article_id": 123,
+        "question": "Question here?",
+        "choice_a": "Choice A",
+        "choice_b": "Choice B",
+        "choice_c": "Choice C",
+        "choice_d": "Choice D",
+        "correct_answer": "A"
+    }}
+]
+
+ARTICLES:
+
+{json.dumps(unused_articles)}
+"""
+
+
+    try:
+
+        response = gemini.models.generate_content(
+            model="gemini-3.8-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.2
+            )
+        )
+
+        results = json.loads(response.text)
+
+    except Exception as error:
+        print("Gemini error:")
+        print(error)
+        return
+
+
+    article_lookup = {
+        article["id"]: article
+        for article in articles
+    }
+
+    added = 0
+
+
+    for result in results:
 
         if added >= 5:
             break
 
-        if already_used(article["id"]):
+        article_id = result.get("article_id")
+
+        if article_id not in article_lookup:
             continue
 
+        if result.get("correct_answer") not in ["A", "B", "C", "D"]:
+            continue
+
+        article = article_lookup[article_id]
+
+
+        question_data = {
+            "question": result["question"],
+            "choice_a": result["choice_a"],
+            "choice_b": result["choice_b"],
+            "choice_c": result["choice_c"],
+            "choice_d": result["choice_d"],
+            "correct_answer": result["correct_answer"],
+            "source_link": article["link"],
+            "article_id": article_id
+        }
+
+
         try:
-            result = make_question(article)
 
-            if not result.get("use"):
-                print("Skipped:", article["title"])
-                continue
-
-            if result.get("correct_answer") not in ["A", "B", "C", "D"]:
-                print("Bad question:", article["title"])
-                continue
-
-            question_data = {
-                "question": result["question"],
-                "choice_a": result["choice_a"],
-                "choice_b": result["choice_b"],
-                "choice_c": result["choice_c"],
-                "choice_d": result["choice_d"],
-                "correct_answer": result["correct_answer"],
-                "source_link": article["link"],
-                "article_id": article["id"]
-            }
-
-            supabase.table("quiz_questions").insert(question_data).execute()
+            supabase.table("quiz_questions").insert(
+                question_data
+            ).execute()
 
             print("Added:", result["question"])
+
             added += 1
 
         except Exception as error:
-            print("Error:", article["title"])
+            print("Could not save question:")
             print(error)
+
 
     print(f"Added {added} questions")
 
