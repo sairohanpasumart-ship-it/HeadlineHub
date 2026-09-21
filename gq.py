@@ -1,212 +1,125 @@
 import os
-import json
-import re
-import html
+import random
 
-from dotenv import load_dotenv
 from supabase import create_client
-from google import genai
-from google.genai import types
 
 
-load_dotenv()
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ["SUPABASE_KEY"]
+
 
 supabase = create_client(
-    os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_KEY")
-)
-
-gemini = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
+    SUPABASE_URL,
+    SUPABASE_KEY
 )
 
 
-def clean_summary(summary):
-    summary = html.unescape(summary or "")
-    return re.sub("<[^>]+>", "", summary)
+response = (
+    supabase
+    .table("quiz_questions")
+    .select(
+        "id,"
+        "question,"
+        "choice_a,"
+        "choice_b,"
+        "choice_c,"
+        "choice_d,"
+        "correct_answer"
+    )
+    .order("id", desc=True)
+    .limit(5)
+    .execute()
+)
 
 
-def main():
+questions = response.data or []
 
-    # get newest articles
-    response = (
-        supabase.table("articles")
-        .select("id,title,link,source,summary")
-        .order("date_added", desc=True)
-        .limit(30)
-        .execute()
+
+# Make sure the five questions do not
+# all end up with the same correct letter.
+positions = ["A", "B", "C", "D"]
+
+while len(positions) < len(questions):
+    positions.append(
+        random.choice(["A", "B", "C", "D"])
     )
 
-    articles = response.data
+random.shuffle(positions)
 
 
-    # get articles already used for questions
-    used_response = (
-        supabase.table("quiz_questions")
-        .select("article_id")
-        .execute()
-    )
+for i, q in enumerate(questions):
 
-    used_ids = {
-        item["article_id"]
-        for item in used_response.data
-        if item["article_id"] is not None
+    old_choices = {
+        "A": q["choice_a"],
+        "B": q["choice_b"],
+        "C": q["choice_c"],
+        "D": q["choice_d"]
     }
 
+    old_correct = str(
+        q["correct_answer"]
+    ).strip()
 
-    # only keep unused articles
-    unused_articles = []
+    # Get the actual correct answer text
+    if old_correct.upper() in old_choices:
+        correct_text = old_choices[
+            old_correct.upper()
+        ]
 
-    for article in articles:
+    else:
+        correct_text = old_correct
 
-        if article["id"] in used_ids:
-            continue
+    # Get the wrong answers
+    wrong_answers = []
 
-        unused_articles.append({
-            "id": article["id"],
-            "title": article["title"],
-            "source": article["source"],
-            "summary": clean_summary(article["summary"])
-        })
+    for letter, text in old_choices.items():
+        if text != correct_text:
+            wrong_answers.append(text)
 
-        if len(unused_articles) >= 20:
-            break
+    random.shuffle(wrong_answers)
 
+    new_correct_letter = positions[i]
 
-    if len(unused_articles) == 0:
-        print("No new articles available")
-        return
+    new_choices = {
+        "A": None,
+        "B": None,
+        "C": None,
+        "D": None
+    }
 
+    new_choices[new_correct_letter] = correct_text
 
-    prompt = f"""
-You are creating a daily quiz for high school UIL Current Events students.
+    wrong_index = 0
 
-Below are recent news articles.
+    for letter in ["A", "B", "C", "D"]:
 
-Choose the 5 most important and useful articles for a current events quiz.
-
-Good topics include:
-- major government or political events
-- international affairs
-- economics and business
-- major science or technology developments
-- important Texas news
-- major national news
-
-Avoid:
-- entertainment
-- celebrity news
-- sports
-- lifestyle stories
-- random facts
-- opinion pieces
-- weak or trivial stories
-
-Only use facts clearly supported by the title and summary.
-
-For each selected article, make ONE multiple-choice question.
-
-Requirements:
-- exactly four choices
-- only one correct answer
-- believable wrong answers
-- question should test an important fact from the story
-- do not ask which news source reported it
-- do not invent information
-- return the article id exactly as provided
-
-Return JSON like this:
-
-[
-    {{
-        "article_id": 123,
-        "question": "Question here?",
-        "choice_a": "Choice A",
-        "choice_b": "Choice B",
-        "choice_c": "Choice C",
-        "choice_d": "Choice D",
-        "correct_answer": "A"
-    }}
-]
-
-ARTICLES:
-
-{json.dumps(unused_articles)}
-"""
-
-
-    try:
-
-        response = gemini.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.2
+        if new_choices[letter] is None:
+            new_choices[letter] = (
+                wrong_answers[wrong_index]
             )
-        )
 
-        results = json.loads(response.text)
+            wrong_index += 1
 
-    except Exception as error:
-        print("Gemini error:")
-        print(error)
-        return
+    (
+        supabase
+        .table("quiz_questions")
+        .update({
+            "choice_a": new_choices["A"],
+            "choice_b": new_choices["B"],
+            "choice_c": new_choices["C"],
+            "choice_d": new_choices["D"],
+            "correct_answer":
+                new_correct_letter
+        })
+        .eq("id", q["id"])
+        .execute()
+    )
 
-
-    article_lookup = {
-        article["id"]: article
-        for article in articles
-    }
-
-    added = 0
-
-
-    for result in results:
-
-        if added >= 5:
-            break
-
-        article_id = result.get("article_id")
-
-        if article_id not in article_lookup:
-            continue
-
-        if result.get("correct_answer") not in ["A", "B", "C", "D"]:
-            continue
-
-        article = article_lookup[article_id]
+    print(
+        f"Question {q['id']} -> "
+        f"correct answer is now "
+        f"{new_correct_letter}"
+    )
 
 
-        question_data = {
-            "question": result["question"],
-            "choice_a": result["choice_a"],
-            "choice_b": result["choice_b"],
-            "choice_c": result["choice_c"],
-            "choice_d": result["choice_d"],
-            "correct_answer": result["correct_answer"],
-            "source_link": article["link"],
-            "article_id": article_id
-        }
-
-
-        try:
-
-            supabase.table("quiz_questions").insert(
-                question_data
-            ).execute()
-
-            print("Added:", result["question"])
-
-            added += 1
-
-        except Exception as error:
-            print("Could not save question:")
-            print(error)
-
-
-    print(f"Added {added} questions")
-
-
-if __name__ == "__main__":
-    main()
+print("Finished shuffling current quiz.")
